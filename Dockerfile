@@ -20,7 +20,6 @@ RUN mkdir -p /app/data && chmod 777 /app/data
 
 # Устанавливаем переменные окружения
 ENV DATA_DIR=/app/data
-ENV PYTHONPATH=/app
 
 # Запускаем правильный файл бота
 CMD ["python", "discord_telegram_bot_advanced.py"]
