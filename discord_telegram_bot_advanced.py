@@ -690,7 +690,8 @@ class DiscordTelegramBot:
         
         # Проверяем, что это администратор
         if user_id != self.ADMIN_ID:
-            await update.message.delete()
+            if update.message:
+                await update.message.delete()
             await context.bot.send_message(
                 chat_id=user_id,
                 text="🚫 У вас нет доступа к этой команде!"
@@ -699,7 +700,8 @@ class DiscordTelegramBot:
             return
         
         try:
-            await update.message.delete()
+            if update.message:
+                await update.message.delete()
             
             # Создаем клавиатуру админ панели с категориями
             keyboard = [
