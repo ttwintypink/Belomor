@@ -723,7 +723,7 @@ class DiscordTelegramBot:
 
 <b>� Быстрая статистика:</b>
 \U0001F465 Подписчиков: <i>{len(self.subscribers)}</i>
-� Замьючено: <i>{muted_count}</i>
+�Замьючено: <i>{muted_count}</i>
 \U0001F4E8 Сообщений: <i>{self.message_count}</i>
 \U000023F1 Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
 
@@ -1126,7 +1126,7 @@ class DiscordTelegramBot:
 
 <b>\U0001F465 Пользователи:</b>
 • Подписчиков: <i>{len(self.subscribers)}</i>
-• Замьючено: <i>{muted_count}</i>
+•Замьючено: <i>{muted_count}</i>
 
 <b>\U0001F4E8 Сообщения:</b>
 • Переслано: <i>{self.message_count}</i>
@@ -1586,7 +1586,7 @@ class DiscordTelegramBot:
 
 <b>\U0001F4CA Быстрая статистика:</b>
 \U0001F465 Подписчиков: <i>{len(self.subscribers)}</i>
-\U0001F507 Замьючено: <i>{muted_count}</i>
+\U0001F507Замьючено: <i>{muted_count}</i>
 \U0001F4E8 Сообщений: <i>{self.message_count}</i>
 \U000023F1 Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
 
@@ -1925,6 +1925,10 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
 
 
 
