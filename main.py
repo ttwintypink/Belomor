@@ -400,12 +400,23 @@ class DiscordTelegramBot:
         # Обработчик всех сообщений
         self.telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_all_messages))
         
-        # Запускаем фоновые задачи
-        self.telegram_app.job_queue.run_once(lambda ctx: asyncio.create_task(self.poll_discord_messages()), 1)
-        self.telegram_app.job_queue.run_once(lambda ctx: asyncio.create_task(self.auto_delete_old_messages()), 2)
-        
         # Запускаем бота
         logger.info("Бот запущен")
+        
+        # Запускаем фоновые задачи в отдельном потоке
+        import threading
+        self.loop = asyncio.new_event_loop()
+        
+        def run_background_tasks():
+            asyncio.set_event_loop(self.loop)
+            self.loop.run_until_complete(asyncio.gather(
+                self.poll_discord_messages(),
+                self.auto_delete_old_messages()
+            ))
+        
+        background_thread = threading.Thread(target=run_background_tasks, daemon=True)
+        background_thread.start()
+        
         self.telegram_app.run_polling()
 
 
