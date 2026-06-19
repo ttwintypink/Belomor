@@ -168,7 +168,7 @@ class CallbackHandlers:
 
 <b>\U0001F4CA Быстрая статистика:</b>
 \U0001F465 Подписчиков: <i>{len(self.bot.subscribers)}</i>
-\U0001F507 Замьючено: <i>{muted_count}</i>
+\U0001F507Замьючено: <i>{muted_count}</i>
 \U0001F4E8 Сообщений: <i>{self.bot.message_count}</i>
 \U000023F1 Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
 
@@ -200,7 +200,7 @@ class CallbackHandlers:
 
 <b>\U0001F465 Пользователи:</b>
 • Подписчиков: <i>{len(self.bot.subscribers)}</i>
-• Замьючено: <i>{muted_count}</i>
+•Замьючено: <i>{muted_count}</i>
 
 <b>\U0001F4E8 Сообщения:</b>
 • Переслано: <i>{self.bot.message_count}</i>
@@ -743,3 +743,5 @@ class CallbackHandlers:
             text="\U00002705 Лог очищен",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]])
         )
+
+

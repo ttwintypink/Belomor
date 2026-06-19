@@ -98,9 +98,9 @@ class AdminHandlers:
             # Создаем клавиатуру админ панели с категориями
             from telegram import InlineKeyboardButton, InlineKeyboardMarkup
             keyboard = [
-                [InlineKeyboardButton(" Статистика", callback_data="admin_stats")],
+                [InlineKeyboardButton("Статистика", callback_data="admin_stats")],
                 [InlineKeyboardButton("\U0001F465 Управление пользователями", callback_data="admin_users")],
-                [InlineKeyboardButton(" Рассылка", callback_data="admin_broadcast_menu")],
+                [InlineKeyboardButton("Рассылка", callback_data="admin_broadcast_menu")],
                 [InlineKeyboardButton("\U0001F5D1 Очистка чатов", callback_data="admin_clear_menu")],
                 [InlineKeyboardButton("\U00002699 Системные команды", callback_data="admin_system")],
                 [InlineKeyboardButton("\U0000274C Закрыть", callback_data="admin_close")]
@@ -422,3 +422,5 @@ class AdminHandlers:
         import sys
         import os
         os.execv(sys.executable, [sys.executable] + sys.argv)
+
+
