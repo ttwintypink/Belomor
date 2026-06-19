@@ -132,6 +132,24 @@ class DiscordTelegramBot:
         # Ссылка на приложение Telegram для отправки сообщений
         self.telegram_app = None
     
+    def get_server_nickname(self, user_id):
+        """Получает серверный никнейм пользователя через Discord API"""
+        try:
+            url = f"https://discord.com/api/v10/guilds/{self.DISCORD_SERVER_ID}/members/{user_id}"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            
+            if response.status_code == 200:
+                member_data = response.json()
+                server_nick = member_data.get('nick')
+                logger.info(f"Получен серверный никнейм для {user_id}: {server_nick}")
+                return server_nick
+            else:
+                logger.warning(f"Не удалось получить серверный никнейм для {user_id}: {response.status_code}")
+                return None
+        except Exception as e:
+            logger.error(f"Ошибка при получении серверного никнейма для {user_id}: {e}")
+            return None
+    
     def load_subscribers(self):
         """Загружает список подписчиков из файла с оптимизацией для больших файлов"""
         try:
@@ -210,21 +228,22 @@ class DiscordTelegramBot:
             # Получаем информацию об авторе (используем ник с сервера)
             author = message.get('author', {})
             author_name = author.get('username', 'Unknown')
-            # Пытаемся получить ник с сервера (server-specific nickname)
-            member_data = message.get('member', {})
-            server_nick = member_data.get('nick')
+            author_id = author.get('id')
             
-            # Логирование для отладки
-            logger.info(f"DISCORD_SERVER_ID: {self.DISCORD_SERVER_ID}")
-            logger.info(f"member_data: {member_data}")
-            logger.info(f"server_nick: {server_nick}")
-            
-            # Для сервера 1506228881902801027 всегда используем серверный никнейм
-            if self.DISCORD_SERVER_ID == '1506228881902801027' and server_nick:
-                author_display_name = server_nick
-                logger.info(f"Используем серверный никнейм: {server_nick}")
+            # Для сервера 1506228881902801027 получаем серверный никнейм через API
+            if self.DISCORD_SERVER_ID == '1506228881902801027' and author_id:
+                server_nick = self.get_server_nickname(author_id)
+                if server_nick:
+                    author_display_name = server_nick
+                    logger.info(f"Используем серверный никнейм: {server_nick}")
+                else:
+                    # Если не удалось получить серверный ник, используем global_name
+                    author_display_name = author.get('global_name', author_name)
+                    logger.info(f"Не удалось получить серверный ник, используем: {author_display_name}")
             else:
-                # Приоритет: серверный ник > global_name > username
+                # Для других серверов используем данные из сообщения
+                member_data = message.get('member', {})
+                server_nick = member_data.get('nick')
                 author_display_name = server_nick if server_nick else author.get('global_name', author_name)
                 logger.info(f"Используем: {author_display_name} (server_nick={server_nick}, global_name={author.get('global_name')}, username={author_name})")
             
