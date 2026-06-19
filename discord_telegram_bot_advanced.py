@@ -88,6 +88,15 @@ class DiscordTelegramBot:
         self.start_time = time.time()
         self.message_count = 0
         
+        # Статистика активности подписчиков
+        self.subscriber_activity = {}  # {user_id: {'subscribed_at': timestamp, 'messages_received': 0, 'last_activity': timestamp}}
+        
+        # Шаблоны рассылок
+        self.broadcast_templates = {}  # {name: text}
+        
+        # Лог действий админа
+        self.admin_log = []  # [{'timestamp': timestamp, 'action': str, 'details': str}]
+        
         # Хранилище отправленных сообщений для автоудаления
         self.sent_messages = {}  # {(chat_id, message_id): timestamp}
         
@@ -182,8 +191,12 @@ class DiscordTelegramBot:
             # Пытаемся получить ник с сервера (server-specific nickname)
             member_data = message.get('member', {})
             server_nick = member_data.get('nick')
-            # Приоритет: серверный ник > global_name > username
-            author_display_name = server_nick if server_nick else author.get('global_name', author_name)
+            # Для сервера 1506228881902801027 всегда используем серверный никнейм
+            if self.DISCORD_SERVER_ID == '1506228881902801027' and server_nick:
+                author_display_name = server_nick
+            else:
+                # Приоритет: серверный ник > global_name > username
+                author_display_name = server_nick if server_nick else author.get('global_name', author_name)
             
             # Получаем контент сообщения и убираем пинги ролей
             content = message.get('content', '')
@@ -239,6 +252,12 @@ class DiscordTelegramBot:
             
             # Увеличиваем счетчик сообщений
             self.message_count += 1
+            
+            # Обновляем статистику активности получателей
+            for recipient_id in recipients:
+                if recipient_id in self.subscriber_activity:
+                    self.subscriber_activity[recipient_id]['messages_received'] += 1
+                    self.subscriber_activity[recipient_id]['last_activity'] = time.time()
             
         except Exception as e:
             logger.error(f"Ошибка при пересылке сообщения в Telegram: {e}")
@@ -430,9 +449,16 @@ class DiscordTelegramBot:
             self.subscribers.add(user_id)
             self.save_subscribers()
             
+            # Записываем активность подписчика
+            self.subscriber_activity[user_id] = {
+                'subscribed_at': time.time(),
+                'messages_received': 0,
+                'last_activity': time.time()
+            }
+            
             # Создаем кнопку отписки
             keyboard = [[InlineKeyboardButton("🔕 Отписаться", callback_data="unsubscribe")]]
-            text = f"🔔 Вы подписаны на уведомления от Discord-сервера '{self.DISCORD_SERVER_NAME}'\n\n🤖 Бот готов к работе!"
+            text = "<b> 🔔 Вы подписаны на уведомления от Discord-сервера 'Belomor' </b>\n\n<b> 🤖 Бот готов к работе! </b>"
             
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -440,7 +466,8 @@ class DiscordTelegramBot:
             sent_message = await context.bot.send_message(
                 chat_id=user_id,
                 text=text,
-                reply_markup=reply_markup
+                reply_markup=reply_markup,
+                parse_mode='HTML'
             )
             
             # Закрепляем сообщение
@@ -657,6 +684,387 @@ class DiscordTelegramBot:
         except Exception as e:
             logger.error(f"Ошибка при обработке /unmute: {e}")
     
+    async def admin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /admin - админ панель"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            logger.warning(f"Пользователь {user_id} пытался получить доступ к админ панели")
+            return
+        
+        try:
+            await update.message.delete()
+            
+            # Создаем клавиатуру админ панели с категориями
+            keyboard = [
+                [InlineKeyboardButton("� Статистика", callback_data="admin_stats")],
+                [InlineKeyboardButton("👥 Управление пользователями", callback_data="admin_users")],
+                [InlineKeyboardButton("� Рассылка", callback_data="admin_broadcast_menu")],
+                [InlineKeyboardButton("🗑️ Очистка чатов", callback_data="admin_clear_menu")],
+                [InlineKeyboardButton("⚙️ Системные команды", callback_data="admin_system")],
+                [InlineKeyboardButton("❌ Закрыть", callback_data="admin_close")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            # Рассчитываем статистику
+            uptime = time.time() - self.start_time
+            uptime_hours = int(uptime // 3600)
+            uptime_minutes = int((uptime % 3600) // 60)
+            muted_count = len([uid for uid, end_time in self.muted_users.items() if end_time > time.time()])
+            
+            admin_text = f"""
+<b>🛠️ Админ панель - Belomor Bot</b>
+
+<b>� Быстрая статистика:</b>
+👥 Подписчиков: <i>{len(self.subscribers)}</i>
+� Замьючено: <i>{muted_count}</i>
+📨 Сообщений: <i>{self.message_count}</i>
+⏱️ Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
+
+Выберите действие ниже:
+            """
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=admin_text,
+                reply_markup=reply_markup,
+                parse_mode='HTML'
+            )
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /admin: {e}")
+    
+    async def admin_broadcast_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /broadcast - рассылка сообщения всем"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            # Проверяем аргументы
+            if not context.args:
+                await update.message.delete()
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text="Использование: /broadcast <текст сообщения>\nПример: /broadcast Важное уведомление!"
+                )
+                return
+            
+            message_text = ' '.join(context.args)
+            await update.message.delete()
+            
+            # Отправляем сообщение всем подписчикам
+            success_count = 0
+            for subscriber_id in self.subscribers:
+                try:
+                    await context.bot.send_message(
+                        chat_id=subscriber_id,
+                        text=message_text,
+                        parse_mode='HTML'
+                    )
+                    success_count += 1
+                    await asyncio.sleep(0.1)  # Небольшая пауза между отправками
+                except Exception as e:
+                    logger.error(f"Ошибка отправки пользователю {subscriber_id}: {e}")
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"✅ Сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
+            )
+            
+            logger.info(f"Администратор {user_id} отправил рассылку: {message_text}")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /broadcast: {e}")
+    
+    async def admin_broadcast_html_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /broadcast_html - рассылка HTML сообщения всем"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            # Проверяем аргументы
+            if not context.args:
+                await update.message.delete()
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text="Использование: /broadcast_html <текст сообщения с HTML>\nПример: /broadcast_html <b>Жирный текст</b>"
+                )
+                return
+            
+            message_text = ' '.join(context.args)
+            await update.message.delete()
+            
+            # Отправляем сообщение всем подписчикам
+            success_count = 0
+            for subscriber_id in self.subscribers:
+                try:
+                    await context.bot.send_message(
+                        chat_id=subscriber_id,
+                        text=message_text,
+                        parse_mode='HTML'
+                    )
+                    success_count += 1
+                    await asyncio.sleep(0.1)  # Небольшая пауза между отправками
+                except Exception as e:
+                    logger.error(f"Ошибка отправки пользователю {subscriber_id}: {e}")
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"✅ HTML сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
+            )
+            
+            logger.info(f"Администратор {user_id} отправил HTML рассылку: {message_text}")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /broadcast_html: {e}")
+    
+    async def admin_clear_old_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /clear_old - удаление сообщений старше N часов"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            # Проверяем аргументы
+            if not context.args:
+                await update.message.delete()
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text="Использование: /clear_old <часы>\nПример: /clear_old 24 (удалить сообщения старше 24 часов)"
+                )
+                return
+            
+            try:
+                hours = int(context.args[0])
+            except ValueError:
+                await update.message.delete()
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text="❌ Неверный формат. Укажите число часов."
+                )
+                return
+            
+            await update.message.delete()
+            
+            # Удаляем старые сообщения из sent_messages
+            current_time = time.time()
+            delete_threshold = hours * 3600
+            deleted_count = 0
+            
+            messages_to_delete = []
+            for (chat_id, message_id), sent_time in list(self.sent_messages.items()):
+                if current_time - sent_time > delete_threshold:
+                    messages_to_delete.append((chat_id, message_id))
+            
+            for chat_id, message_id in messages_to_delete:
+                try:
+                    await self.telegram_app.bot.delete_message(chat_id=chat_id, message_id=message_id)
+                    del self.sent_messages[(chat_id, message_id)]
+                    deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка удаления сообщения {message_id}: {e}")
+                    if (chat_id, message_id) in self.sent_messages:
+                        del self.sent_messages[(chat_id, message_id)]
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"✅ Удалено {deleted_count} сообщений старше {hours} часов"
+            )
+            
+            logger.info(f"Администратор {user_id} удалил {deleted_count} сообщений старше {hours} часов")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /clear_old: {e}")
+    
+    async def admin_mute_user_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /mute_user - замьютить конкретного пользователя"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            # Проверяем аргументы
+            if len(context.args) < 2:
+                await update.message.delete()
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text="Использование: /mute_user <user_id> <часы>\nПример: /mute_user 123456789 24"
+                )
+                return
+            
+            target_user_id = context.args[0]
+            try:
+                hours = int(context.args[1])
+            except ValueError:
+                await update.message.delete()
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text="❌ Неверный формат часов. Укажите число."
+                )
+                return
+            
+            await update.message.delete()
+            
+            # Устанавливаем мьют
+            mute_end_time = time.time() + (hours * 3600)
+            self.muted_users[int(target_user_id)] = mute_end_time
+            
+            end_time_str = datetime.fromtimestamp(mute_end_time).strftime('%d.%m.%Y %H:%M')
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"✅ Пользователь {target_user_id} замьючен до {end_time_str}"
+            )
+            
+            logger.info(f"Администратор {user_id} замьючил пользователя {target_user_id} на {hours} часов")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /mute_user: {e}")
+    
+    async def admin_unmute_user_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /unmute_user - размьютить конкретного пользователя"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            # Проверяем аргументы
+            if not context.args:
+                await update.message.delete()
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text="Использование: /unmute_user <user_id>\nПример: /unmute_user 123456789"
+                )
+                return
+            
+            target_user_id = context.args[0]
+            await update.message.delete()
+            
+            # Убираем мьют
+            if int(target_user_id) in self.muted_users:
+                del self.muted_users[int(target_user_id)]
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=f"✅ Пользователь {target_user_id} размьючен"
+                )
+                logger.info(f"Администратор {user_id} размьючил пользователя {target_user_id}")
+            else:
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=f"❌ Пользователь {target_user_id} не замьючен"
+                )
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /unmute_user: {e}")
+    
+    async def admin_clearall_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /clearall - очистка всех чатов"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            await update.message.delete()
+            
+            # Очищаем чаты всех подписчиков
+            cleared_count = 0
+            for subscriber_id in self.subscribers:
+                try:
+                    await self.cleanup_chat_before_pinned(subscriber_id)
+                    cleared_count += 1
+                except Exception as e:
+                    logger.error(f"Ошибка очистки чата пользователя {subscriber_id}: {e}")
+            
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=f"✅ Очищено {cleared_count} из {len(self.subscribers)} чатов"
+            )
+            
+            logger.info(f"Администратор {user_id} очистил все чаты")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /clearall: {e}")
+    
+    async def admin_restart_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /restart - перезапуск бота"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🔄 Перезапуск бота..."
+            )
+            
+            logger.info(f"Администратор {user_id} инициировал перезапуск бота")
+            
+            # Перезапуск бота через exit
+            import sys
+            import os
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /restart: {e}")
+    
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обработчик нажатий на инлайн кнопки"""
         query = update.callback_query
@@ -691,6 +1099,10 @@ class DiscordTelegramBot:
                 self.subscribers.discard(user_id)
                 self.save_subscribers()
                 
+                # Удаляем статистику подписчика
+                if user_id in self.subscriber_activity:
+                    del self.subscriber_activity[user_id]
+                
                 # Редактируем сообщение
                 keyboard = [[InlineKeyboardButton("🔔 Подписаться", callback_data="subscribe")]]
                 text = f"🔕 Вы успешно отписались от уведомлений от Discord-сервера '{self.DISCORD_SERVER_NAME}'"
@@ -701,6 +1113,580 @@ class DiscordTelegramBot:
                 )
                 
                 logger.info(f"Пользователь {user_id} отписался от уведомлений")
+            
+            elif query.data == "admin_stats":
+                # Админ: статистика
+                uptime = time.time() - self.start_time
+                uptime_hours = int(uptime // 3600)
+                uptime_minutes = int((uptime % 3600) // 60)
+                muted_count = len([uid for uid, end_time in self.muted_users.items() if end_time > time.time()])
+                
+                stats_text = f"""
+<b>📊 Детальная статистика бота</b>
+
+<b>👥 Пользователи:</b>
+• Подписчиков: <i>{len(self.subscribers)}</i>
+• Замьючено: <i>{muted_count}</i>
+
+<b>📨 Сообщения:</b>
+• Переслано: <i>{self.message_count}</i>
+• Интервал проверки: <i>{self.polling_interval} сек</i>
+
+<b>⏱️ Время работы:</b>
+• Запущен: <i>{datetime.fromtimestamp(self.start_time).strftime('%d.%m.%Y %H:%M')}</i>
+• Аптайм: <i>{uptime_hours}ч {uptime_minutes}м</i>
+
+<b>🔧 Настройки:</b>
+• Батч размер: <i>{self.batch_size}</i>
+• Макс. отправок: <i>{self.max_concurrent_sends}</i>
+• Автоудаление: <i>{'Включено' if self.auto_delete_enabled else 'Выключено'}</i>
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔄 Обновить", callback_data="admin_stats")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=stats_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_users":
+                # Админ: управление пользователями
+                users_text = f"""
+<b>👥 Управление пользователями</b>
+
+Всего подписчиков: <i>{len(self.subscribers)}</i>
+Замьючено: <i>{len([uid for uid, end_time in self.muted_users.items() if end_time > time.time()])}</i>
+
+Выберите действие:
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("📋 Подписчики с уведомлениями", callback_data="admin_subscribers_enabled")],
+                    [InlineKeyboardButton("🔇 Подписчики без уведомлений", callback_data="admin_subscribers_disabled")],
+                    [InlineKeyboardButton("� Активность подписчиков", callback_data="admin_activity")],
+                    [InlineKeyboardButton("🧹 Очистить неактивных (30дней)", callback_data="admin_cleanup_inactive")],
+                    [InlineKeyboardButton("� Размьютить всех", callback_data="admin_unmute_all")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=users_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_activity":
+                # Админ: статистика активности подписчиков
+                activity_text = "<b>📊 Активность подписчиков</b>\n\n"
+                
+                if self.subscriber_activity:
+                    # Сортируем по последней активности
+                    sorted_activity = sorted(
+                        self.subscriber_activity.items(),
+                        key=lambda x: x[1]['last_activity'],
+                        reverse=True
+                    )
+                    
+                    for i, (user_id, data) in enumerate(sorted_activity[:20], 1):
+                        subscribed = datetime.fromtimestamp(data['subscribed_at']).strftime('%d.%m.%Y')
+                        last_active = datetime.fromtimestamp(data['last_activity']).strftime('%d.%m.%Y %H:%M')
+                        messages = data['messages_received']
+                        activity_text += f"{i}. <code>{user_id}</code>\n   📅 Подписан: {subscribed}\n   📨 Сообщений: {messages}\n   ⏰ Активность: {last_active}\n\n"
+                    
+                    if len(sorted_activity) > 20:
+                        activity_text += f"<i>...и еще {len(sorted_activity) - 20} пользователей</i>"
+                else:
+                    activity_text += "Нет данных об активности"
+                
+                keyboard = [
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                ]
+                
+                await query.edit_message_text(
+                    text=activity_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_cleanup_inactive":
+                # Админ: очистка неактивных подписчиков (30 дней)
+                current_time = time.time()
+                thirty_days_ago = current_time - (30 * 24 * 3600)
+                
+                inactive_users = [
+                    uid for uid, data in self.subscriber_activity.items()
+                    if data['last_activity'] < thirty_days_ago
+                ]
+                
+                if inactive_users:
+                    for uid in inactive_users:
+                        self.subscribers.discard(uid)
+                        if uid in self.subscriber_activity:
+                            del self.subscriber_activity[uid]
+                    
+                    self.save_subscribers()
+                    result_text = f"✅ Удалено {len(inactive_users)} неактивных подписчиков"
+                else:
+                    result_text = "❌ Нет неактивных подписчиков"
+                
+                keyboard = [
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                ]
+                
+                await query.edit_message_text(
+                    text=result_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+                
+                logger.info(f"Администратор {user_id} очистил {len(inactive_users)} неактивных подписчиков")
+            
+            elif query.data == "admin_subscribers_enabled":
+                # Админ: список подписчиков с включенными уведомлениями
+                current_time = time.time()
+                enabled_users = [uid for uid in self.subscribers if uid not in self.muted_users or self.muted_users[uid] < current_time]
+                
+                if enabled_users:
+                    list_text = f"<b>🔔 Люди, у которых включены уведомления</b>\n\n"
+                    for i, user_id in enumerate(enabled_users[:50], 1):
+                        list_text += f"{i}. <i>ID: {user_id}</i>\n"
+                    
+                    if len(enabled_users) > 50:
+                        list_text += f"\n<i>...и еще {len(enabled_users) - 50} пользователей</i>"
+                else:
+                    list_text = "<b>🔔 Люди, у которых включены уведомления</b>\n\nНет пользователей с включенными уведомлениями"
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔇 Выключенные уведомления", callback_data="admin_subscribers_disabled")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                ]
+                
+                await query.edit_message_text(
+                    text=list_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_subscribers_disabled":
+                # Админ: список подписчиков с выключенными уведомлениями
+                current_time = time.time()
+                disabled_users = [uid for uid in self.subscribers if uid in self.muted_users and self.muted_users[uid] > current_time]
+                
+                if disabled_users:
+                    list_text = f"<b>🔇 Люди, у которых выключены уведомления</b>\n\n"
+                    for i, user_id in enumerate(disabled_users[:50], 1):
+                        mute_end = self.muted_users[user_id]
+                        end_time_str = datetime.fromtimestamp(mute_end).strftime('%d.%m.%Y %H:%M')
+                        list_text += f"{i}. <i>ID: {user_id}</i> - до {end_time_str}\n"
+                    
+                    if len(disabled_users) > 50:
+                        list_text += f"\n<i>...и еще {len(disabled_users) - 50} пользователей</i>"
+                else:
+                    list_text = "<b>🔇 Люди, у которых выключены уведомления</b>\n\nНет пользователей с выключенными уведомлениями"
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔔 Включенные уведомления", callback_data="admin_subscribers_enabled")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                ]
+                
+                await query.edit_message_text(
+                    text=list_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_unmute_all":
+                # Админ: размьютить всех
+                current_time = time.time()
+                muted_count = len([uid for uid, end_time in self.muted_users.items() if end_time > current_time])
+                
+                if muted_count == 0:
+                    result_text = "❌ Нет замьюченных пользователей"
+                else:
+                    self.muted_users.clear()
+                    result_text = f"✅ Размьючено {muted_count} пользователей"
+                
+                keyboard = [
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                ]
+                
+                await query.edit_message_text(
+                    text=result_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+                
+                logger.info(f"Администратор {user_id} размьючил всех пользователей")
+            
+            elif query.data == "admin_users_list":
+                # Админ: список подписчиков
+                subscribers_list = list(self.subscribers)
+                if len(subscribers_list) > 50:
+                    list_text = f"<b>📋 Список подписчиков (первые 50 из {len(subscribers_list)})</b>\n\n"
+                else:
+                    list_text = f"<b>📋 Список подписчиков ({len(subscribers_list)})</b>\n\n"
+                
+                for i, sub_id in enumerate(subscribers_list[:50], 1):
+                    list_text += f"{i}. <code>{sub_id}</code>\n"
+                
+                keyboard = [
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                ]
+                
+                await query.edit_message_text(
+                    text=list_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_muted_list":
+                # Админ: список замьюченных
+                current_time = time.time()
+                muted_list = [(uid, end_time) for uid, end_time in self.muted_users.items() if end_time > current_time]
+                
+                if muted_list:
+                    list_text = f"<b>🔇 Список замьюченных ({len(muted_list)})</b>\n\n"
+                    for i, (uid, end_time) in enumerate(muted_list, 1):
+                        end_str = datetime.fromtimestamp(end_time).strftime('%d.%m.%Y %H:%M')
+                        list_text += f"{i}. <code>{uid}</code> - до {end_str}\n"
+                else:
+                    list_text = "<b>🔇 Список замьюченных</b>\n\nНет замьюченных пользователей"
+                
+                keyboard = [
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                ]
+                
+                await query.edit_message_text(
+                    text=list_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_broadcast_menu":
+                # Админ: меню рассылки
+                broadcast_text = """
+<b>📢 Рассылка сообщений</b>
+
+Выберите тип рассылки:
+• <b>Текстовая</b> - обычное текстовое сообщение
+• <b>HTML</b> - сообщение с форматированием
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("📝 Текстовая", callback_data="admin_broadcast_type_text")],
+                    [InlineKeyboardButton("🎨 HTML", callback_data="admin_broadcast_type_html")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=broadcast_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_broadcast_type_text":
+                # Админ: ввод текстовой рассылки
+                await query.edit_message_text(
+                    text="📝 Введите текст для рассылки:\n\nОтправьте сообщение как обычный текст, и оно будет разослано всем подписчикам.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Отмена", callback_data="admin_back")]])
+                )
+                # Сохраняем состояние для следующего сообщения
+                context.user_data['waiting_for_broadcast'] = 'text'
+            
+            elif query.data == "admin_broadcast_type_html":
+                # Админ: ввод HTML рассылки
+                await query.edit_message_text(
+                    text="🎨 Введите HTML текст для рассылки:\n\nОтправьте сообщение с HTML тегами, и оно будет разослано всем подписчикам.\nПример: <b>Жирный текст</b> и <i>курсив</i>",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Отмена", callback_data="admin_back")]])
+                )
+                # Сохраняем состояние для следующего сообщения
+                context.user_data['waiting_for_broadcast'] = 'html'
+            
+            elif query.data == "admin_clear_menu":
+                # Админ: меню очистки
+                clear_text = """
+<b>🗑️ Очистка чатов</b>
+
+Выберите действие:
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("🗑️ Очистить все чаты", callback_data="admin_clearall_confirm")],
+                    [InlineKeyboardButton("🧹 Удалить старые (24ч)", callback_data="admin_clear_old_24")],
+                    [InlineKeyboardButton("🧹 Удалить старые (12ч)", callback_data="admin_clear_old_12")],
+                    [InlineKeyboardButton("🧹 Удалить старые (6ч)", callback_data="admin_clear_old_6")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=clear_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data.startswith("admin_clear_old_"):
+                # Админ: удаление старых сообщений
+                hours = int(query.data.split("_")[-1])
+                current_time = time.time()
+                delete_threshold = hours * 3600
+                deleted_count = 0
+                
+                messages_to_delete = []
+                for (chat_id, message_id), sent_time in list(self.sent_messages.items()):
+                    if current_time - sent_time > delete_threshold:
+                        messages_to_delete.append((chat_id, message_id))
+                
+                for chat_id, message_id in messages_to_delete:
+                    try:
+                        await self.telegram_app.bot.delete_message(chat_id=chat_id, message_id=message_id)
+                        del self.sent_messages[(chat_id, message_id)]
+                        deleted_count += 1
+                    except Exception as e:
+                        logger.error(f"Ошибка удаления сообщения {message_id}: {e}")
+                        if (chat_id, message_id) in self.sent_messages:
+                            del self.sent_messages[(chat_id, message_id)]
+                
+                result_text = f"✅ Удалено {deleted_count} сообщений старше {hours} часов"
+                
+                keyboard = [
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_clear_menu")]
+                ]
+                
+                await query.edit_message_text(
+                    text=result_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+                
+                logger.info(f"Администратор {user_id} удалил {deleted_count} сообщений старше {hours} часов через панель")
+            
+            elif query.data == "admin_clearall_confirm":
+                # Админ: подтверждение очистки
+                confirm_text = """
+⚠️ <b>Вы уверены, что хотите очистить ВСЕ чаты?</b>
+
+Это действие удалит все сообщения до закрепленных у всех подписчиков!
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("✅ Да, очистить", callback_data="admin_clearall_do")],
+                    [InlineKeyboardButton("❌ Отмена", callback_data="admin_clear_menu")]
+                ]
+                
+                await query.edit_message_text(
+                    text=confirm_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_clearall_do":
+                # Админ: выполнить очистку
+                cleared_count = 0
+                for subscriber_id in self.subscribers:
+                    try:
+                        await self.cleanup_chat_before_pinned(subscriber_id)
+                        cleared_count += 1
+                    except Exception as e:
+                        logger.error(f"Ошибка очистки чата пользователя {subscriber_id}: {e}")
+                
+                result_text = f"✅ Очищено {cleared_count} из {len(self.subscribers)} чатов"
+                
+                keyboard = [
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=result_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
+                
+                logger.info(f"Администратор {user_id} очистил все чаты через панель")
+            
+            elif query.data == "admin_system":
+                # Админ: системные команды
+                system_text = """
+<b>⚙️ Системные команды</b>
+
+Доступные команды:
+• <b>/restart</b> - перезапустить бота
+• <b>/status</b> - показать статус бота
+• <b>/stats</b> - детальная статистика
+
+⚠️ Будьте осторожны с системными командами!
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔄 Перезапустить бота", callback_data="admin_restart_confirm")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=system_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_restart_confirm":
+                # Админ: подтверждение перезапуска
+                confirm_text = """
+⚠️ <b>Вы уверены, что хотите перезапустить бота?</b>
+
+Бот будет перезапущен через несколько секунд.
+                """
+                
+                keyboard = [
+                    [InlineKeyboardButton("✅ Да, перезапустить", callback_data="admin_restart_do")],
+                    [InlineKeyboardButton("❌ Отмена", callback_data="admin_system")]
+                ]
+                
+                await query.edit_message_text(
+                    text=confirm_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_restart_do":
+                # Админ: выполнить перезапуск
+                await query.edit_message_text(
+                    text="🔄 Перезапуск бота...",
+                    reply_markup=None
+                )
+                
+                logger.info(f"Администратор {user_id} перезапустил бота через панель")
+                
+                # Перезапуск бота
+                import sys
+                import os
+                os.execv(sys.executable, [sys.executable] + sys.argv)
+            
+            elif query.data == "admin_back":
+                # Админ: назад в главное меню
+                # Вызываем команду admin снова
+                await self.admin_command(update, context)
+            
+            elif query.data == "admin_close":
+                # Админ: закрыть панель
+                await query.edit_message_text(
+                    text="❌ Админ панель закрыта",
+                    reply_markup=None
+                )
+            
+            elif query.data == "admin_broadcast":
+                # Админ: рассылка (старый метод для совместимости)
+                await query.edit_message_text(
+                    text="📢 Введите сообщение для рассылки:\nИспользуйте: /broadcast <текст>",
+                    reply_markup=None
+                )
+            
+            elif query.data == "admin_clearall":
+                # Админ: очистить все чаты (старый метод для совместимости)
+                await query.edit_message_text(
+                    text="🗑️ Очистка всех чатов...\nИспользуйте: /clearall",
+                    reply_markup=None
+                )
+            
+            elif query.data == "admin_restart":
+                # Админ: перезапуск бота (старый метод для совместимости)
+                await query.edit_message_text(
+                    text="🔄 Перезапуск бота...\nИспользуйте: /restart",
+                    reply_markup=None
+                )
+            
+            elif query.data == "admin_templates":
+                # Админ: управление шаблонами рассылки
+                templates_text = "<b>📝 Шаблоны рассылки</b>\n\n"
+                
+                if self.broadcast_templates:
+                    for name, text in self.broadcast_templates.items():
+                        preview = text[:50] + "..." if len(text) > 50 else text
+                        templates_text += f"• <b>{name}</b>: {preview}\n"
+                else:
+                    templates_text += "Нет сохраненных шаблонов"
+                
+                keyboard = [
+                    [InlineKeyboardButton("➕ Добавить шаблон", callback_data="admin_template_add")],
+                    [InlineKeyboardButton("🗑️ Удалить шаблон", callback_data="admin_template_delete")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=templates_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_template_add":
+                # Админ: добавление шаблона
+                await query.edit_message_text(
+                    text="📝 Введите название шаблона и текст через |:\n\nПример: Название|Текст шаблона",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Отмена", callback_data="admin_templates")]])
+                )
+                context.user_data['waiting_for_template'] = True
+            
+            elif query.data == "admin_template_delete":
+                # Админ: удаление шаблона
+                if self.broadcast_templates:
+                    delete_text = "<b>🗑️ Выберите шаблон для удаления:</b>\n\n"
+                    keyboard = []
+                    for name in self.broadcast_templates.keys():
+                        keyboard.append([InlineKeyboardButton(f"🗑️ {name}", callback_data=f"admin_template_del_{name}")])
+                    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data="admin_templates")])
+                    
+                    await query.edit_message_text(
+                        text=delete_text,
+                        reply_markup=InlineKeyboardMarkup(keyboard),
+                        parse_mode='HTML'
+                    )
+                else:
+                    await query.edit_message_text(
+                        text="❌ Нет шаблонов для удаления",
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data="admin_templates")]])
+                    )
+            
+            elif query.data.startswith("admin_template_del_"):
+                # Админ: удаление конкретного шаблона
+                template_name = query.data.replace("admin_template_del_", "")
+                if template_name in self.broadcast_templates:
+                    del self.broadcast_templates[template_name]
+                    result_text = f"✅ Шаблон '{template_name}' удален"
+                else:
+                    result_text = "❌ Шаблон не найден"
+                
+                await query.edit_message_text(
+                    text=result_text,
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data="admin_templates")]])
+                )
+            
+            elif query.data == "admin_log":
+                # Админ: лог действий
+                log_text = "<b>📋 Лог действий админа</b>\n\n"
+                
+                if self.admin_log:
+                    for log_entry in self.admin_log[-20:]:  # Последние 20 записей
+                        timestamp = datetime.fromtimestamp(log_entry['timestamp']).strftime('%d.%m.%Y %H:%M:%S')
+                        log_text += f"<b>{timestamp}</b>\n{log_entry['action']}: {log_entry['details']}\n\n"
+                else:
+                    log_text += "Нет записей в логе"
+                
+                keyboard = [
+                    [InlineKeyboardButton("🗑️ Очистить лог", callback_data="admin_log_clear")],
+                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                ]
+                
+                await query.edit_message_text(
+                    text=log_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
+            
+            elif query.data == "admin_log_clear":
+                # Админ: очистка лога
+                self.admin_log.clear()
+                await query.edit_message_text(
+                    text="✅ Лог очищен",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]])
+                )
                 
         except Exception as e:
             logger.error(f"Ошибка при обработке кнопки: {e}")
@@ -713,6 +1699,78 @@ class DiscordTelegramBot:
         logger.info(f"Получено сообщение от пользователя {user_id} ({user_name})")
         
         try:
+            # Проверяем, ждет ли админ текст для шаблона
+            if user_id == self.ADMIN_ID and context.user_data.get('waiting_for_template'):
+                template_input = update.message.text
+                
+                await update.message.delete()
+                
+                if '|' in template_input:
+                    name, text = template_input.split('|', 1)
+                    self.broadcast_templates[name.strip()] = text.strip()
+                    
+                    # Логируем действие
+                    self.admin_log.append({
+                        'timestamp': time.time(),
+                        'action': 'Добавлен шаблон',
+                        'details': f'Название: {name.strip()}'
+                    })
+                    
+                    await context.bot.send_message(
+                        chat_id=user_id,
+                        text=f"✅ Шаблон '{name.strip()}' добавлен"
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=user_id,
+                        text="❌ Неверный формат. Используйте: Название|Текст"
+                    )
+                
+                del context.user_data['waiting_for_template']
+                return
+            
+            # Проверяем, ждет ли админ текст для рассылки
+            if user_id == self.ADMIN_ID and context.user_data.get('waiting_for_broadcast'):
+                broadcast_type = context.user_data['waiting_for_broadcast']
+                message_text = update.message.text
+                
+                await update.message.delete()
+                
+                # Отправляем рассылку
+                success_count = 0
+                parse_mode = 'HTML' if broadcast_type == 'html' else None
+                
+                for subscriber_id in self.subscribers:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=subscriber_id,
+                            text=message_text,
+                            parse_mode=parse_mode
+                        )
+                        success_count += 1
+                        await asyncio.sleep(0.1)
+                    except Exception as e:
+                        logger.error(f"Ошибка отправки пользователю {subscriber_id}: {e}")
+                
+                # Логируем рассылку
+                self.admin_log.append({
+                    'timestamp': time.time(),
+                    'action': 'Рассылка',
+                    'details': f'Тип: {broadcast_type}, Получили: {success_count}/{len(self.subscribers)}'
+                })
+                
+                # Очищаем состояние
+                del context.user_data['waiting_for_broadcast']
+                
+                # Отправляем результат
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=f"✅ Сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
+                )
+                
+                logger.info(f"Администратор {user_id} отправил {broadcast_type} рассылку через панель")
+                return
+            
             # Удаляем сообщение пользователя
             await update.message.delete()
             
@@ -790,6 +1848,14 @@ def main():
     application.add_handler(CommandHandler("clean", bot.clean_command))
     application.add_handler(CommandHandler("mute", bot.mute_command))
     application.add_handler(CommandHandler("unmute", bot.unmute_command))
+    application.add_handler(CommandHandler("admin", bot.admin_command))
+    application.add_handler(CommandHandler("broadcast", bot.admin_broadcast_command))
+    application.add_handler(CommandHandler("broadcast_html", bot.admin_broadcast_html_command))
+    application.add_handler(CommandHandler("clearall", bot.admin_clearall_command))
+    application.add_handler(CommandHandler("clear_old", bot.admin_clear_old_command))
+    application.add_handler(CommandHandler("mute_user", bot.admin_mute_user_command))
+    application.add_handler(CommandHandler("unmute_user", bot.admin_unmute_user_command))
+    application.add_handler(CommandHandler("restart", bot.admin_restart_command))
     application.add_handler(CallbackQueryHandler(bot.button_callback))
     
     # Добавляем обработчик для всех сообщений кроме команд
