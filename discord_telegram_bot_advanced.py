@@ -1562,8 +1562,42 @@ class DiscordTelegramBot:
             
             elif query.data == "admin_back":
                 # Админ: назад в главное меню
-                # Вызываем команду admin снова
-                await self.admin_command(update, context)
+                # Показываем главное меню напрямую
+                user_id = query.from_user.id
+                
+                # Рассчитываем статистику
+                uptime = time.time() - self.start_time
+                uptime_hours = int(uptime // 3600)
+                uptime_minutes = int((uptime % 3600) // 60)
+                muted_count = len([uid for uid, end_time in self.muted_users.items() if end_time > time.time()])
+                
+                # Создаем клавиатуру админ панели с категориями
+                keyboard = [
+                    [InlineKeyboardButton("\U0001F4CA Статистика", callback_data="admin_stats")],
+                    [InlineKeyboardButton("\U0001F465 Управление пользователями", callback_data="admin_users")],
+                    [InlineKeyboardButton("\U0001F4E2 Рассылка", callback_data="admin_broadcast_menu")],
+                    [InlineKeyboardButton("\U0001F5D1 Очистка чатов", callback_data="admin_clear_menu")],
+                    [InlineKeyboardButton("\U00002699 Системные команды", callback_data="admin_system")],
+                    [InlineKeyboardButton("\U0000274C Закрыть", callback_data="admin_close")]
+                ]
+                
+                admin_text = f"""
+<b>\U0001F6E0 Админ панель - Belomor Bot</b>
+
+<b>\U0001F4CA Быстрая статистика:</b>
+\U0001F465 Подписчиков: <i>{len(self.subscribers)}</i>
+\U0001F507 Замьючено: <i>{muted_count}</i>
+\U0001F4E8 Сообщений: <i>{self.message_count}</i>
+\U000023F1 Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
+
+Выберите действие ниже:
+                """
+                
+                await query.edit_message_text(
+                    text=admin_text,
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode='HTML'
+                )
             
             elif query.data == "admin_close":
                 # Админ: закрыть панель
