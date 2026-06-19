@@ -213,12 +213,12 @@ class DiscordTelegramBot:
             
             # Формируем красивое сообщение для Telegram с HTML форматированием
             telegram_message = f"""
-<b>📨 Новое сообщение из Discord</b>
+<b>\U0001F4E8 Новое сообщение из Discord</b>
 
-<b>👤 Автор:</b> <i>{author_display_name} (@{author_name})</i>
-<b>⏰ Время отправки сообщения Discord:</b> <i>{msk_time} (МСК)</i>
+<b>\U0001F464 Автор:</b> <i>{author_display_name} (@{author_name})</i>
+<b>\U000023F0 Время отправки сообщения Discord:</b> <i>{msk_time} (МСК)</i>
 
-<b>💬 Сообщение:</b>
+<b>\U0001F4AC Сообщение:</b>
 {content}
             """
             
@@ -226,7 +226,7 @@ class DiscordTelegramBot:
             if self.attachments_enabled:
                 attachments = message.get('attachments', [])
                 if attachments:
-                    telegram_message += "\n\n<b>📎 Вложения:</b>\n"
+                    telegram_message += "\n\n<b>\U0001F4CE Вложения:</b>\n"
                     for attachment in attachments:
                         telegram_message += f"• {attachment.get('url', 'No URL')}\n"
             
@@ -423,7 +423,7 @@ class DiscordTelegramBot:
             await update.message.delete()
             await context.bot.send_message(
                 chat_id=update.effective_user.id,
-                text="🚫 Функция подписок отключена администратором."
+                text="\U0001F6AB Функция подписок отключена администратором."
             )
             return
         
@@ -441,7 +441,7 @@ class DiscordTelegramBot:
                 logger.info(f"Пользователь {user_id} уже использует бота")
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text="✅ Вы уже подписаны на уведомления!"
+                    text="\U00002705 Вы уже подписаны на уведомления!"
                 )
                 return
             
@@ -457,8 +457,8 @@ class DiscordTelegramBot:
             }
             
             # Создаем кнопку отписки
-            keyboard = [[InlineKeyboardButton("🔕 Отписаться", callback_data="unsubscribe")]]
-            text = "<b> 🔔 Вы подписаны на уведомления от Discord-сервера 'Belomor' </b>\n\n<b> 🤖 Бот готов к работе! </b>"
+            keyboard = [[InlineKeyboardButton("\U0001F515 Отписаться", callback_data="unsubscribe")]]
+            text = "<b> \U0001F514 Вы подписаны на уведомления от Discord-сервера 'Belomor' </b>\n\n<b> \U0001F916 Бот готов к работе! </b>"
             
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -495,13 +495,13 @@ class DiscordTelegramBot:
             await self.cleanup_chat_before_pinned(user_id)
             await context.bot.send_message(
                 chat_id=user_id,
-                text="✅ Чат очищен до закрепленного сообщения!"
+                text="\U00002705 Чат очищен до закрепленного сообщения!"
             )
         except Exception as e:
             logger.error(f"Ошибка при выполнении /clean: {e}")
             await context.bot.send_message(
                 chat_id=user_id,
-                text="❌ Ошибка при очистке чата"
+                text="\U0000274C Ошибка при очистке чата"
             )
     
     async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -514,13 +514,13 @@ class DiscordTelegramBot:
             uptime_minutes = int((uptime % 3600) // 60)
             
             status_text = f"""
-📊 <b>Статистика бота</b>
+\U0001F4CA <b>Статистика бота</b>
 
-👥 Подписчиков: <i>{len(self.subscribers)}</i>
-📨 Переслано сообщений: <i>{self.message_count}</i>
-⏱️ Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
-🔔 Сервер: <i>{self.DISCORD_SERVER_NAME}</i>
-⚡ Интервал проверки: <i>{self.polling_interval} сек</i>
+\U0001F465 Подписчиков: <i>{len(self.subscribers)}</i>
+\U0001F4E8 Переслано сообщений: <i>{self.message_count}</i>
+\U000023F1 Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
+\U0001F514 Сервер: <i>{self.DISCORD_SERVER_NAME}</i>
+\U000026A1 Интервал проверки: <i>{self.polling_interval} сек</i>
             """
             
             await context.bot.send_message(
@@ -562,13 +562,13 @@ class DiscordTelegramBot:
             
             # Формируем статистику
             stats_message = f"""
-📊 Статистика бота
+\U0001F4CA Статистика бота
 
-👥 Подписчики: {len(self.subscribers)}
-🔇 Замьюченные: {muted_count}
-📨 Сообщений переслано: {self.message_count}
-⏰ Время работы: {uptime_hours}ч {uptime_minutes}м
-📅 Запущен: {datetime.fromtimestamp(self.start_time).strftime('%d.%m.%Y %H:%M')}
+\U0001F465 Подписчики: {len(self.subscribers)}
+\U0001F507 Замьюченные: {muted_count}
+\U0001F4E8 Сообщений переслано: {self.message_count}
+\U000023F0 Время работы: {uptime_hours}ч {uptime_minutes}м
+\U0001F4C5 Запущен: {datetime.fromtimestamp(self.start_time).strftime('%d.%m.%Y %H:%M')}
 
 Сервер Discord: {self.DISCORD_SERVER_NAME}
             """
@@ -590,7 +590,7 @@ class DiscordTelegramBot:
             await update.message.delete()
             await context.bot.send_message(
                 chat_id=update.effective_user.id,
-                text="🚫 Функция мьюта отключена администратором."
+                text="\U0001F6AB Функция мьюта отключена администратором."
             )
             return
         
@@ -628,10 +628,10 @@ class DiscordTelegramBot:
             end_time_str = datetime.fromtimestamp(mute_end_time).strftime('%d.%m.%Y %H:%M')
             
             mute_message = f"""
-🔇 Уведомления отключены
+\U0001F507 Уведомления отключены
 
-⏰ До: {end_time_str}
-📅 Длительность: {mute_duration // 3600}ч
+\U000023F0 До: {end_time_str}
+\U0001F4C5 Длительность: {mute_duration // 3600}ч
 
 Чтобы включить раньше: /unmute
             """
@@ -663,7 +663,7 @@ class DiscordTelegramBot:
                 del self.muted_users[user_id]
                 
                 unmute_message = """
-🔔 Уведомления включены
+\U0001F514 Уведомления включены
 
 Теперь вы будете получать сообщения из Discord снова!
                 """
@@ -678,7 +678,7 @@ class DiscordTelegramBot:
                 # Пользователь не замьючен
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text="🔔 У вас и так включены уведомления!"
+                    text="\U0001F514 У вас и так включены уведомления!"
                 )
                 
         except Exception as e:
@@ -704,11 +704,11 @@ class DiscordTelegramBot:
             # Создаем клавиатуру админ панели с категориями
             keyboard = [
                 [InlineKeyboardButton("� Статистика", callback_data="admin_stats")],
-                [InlineKeyboardButton("👥 Управление пользователями", callback_data="admin_users")],
+                [InlineKeyboardButton("\U0001F465 Управление пользователями", callback_data="admin_users")],
                 [InlineKeyboardButton("� Рассылка", callback_data="admin_broadcast_menu")],
-                [InlineKeyboardButton("🗑️ Очистка чатов", callback_data="admin_clear_menu")],
-                [InlineKeyboardButton("⚙️ Системные команды", callback_data="admin_system")],
-                [InlineKeyboardButton("❌ Закрыть", callback_data="admin_close")]
+                [InlineKeyboardButton("\U0001F5D1 Очистка чатов", callback_data="admin_clear_menu")],
+                [InlineKeyboardButton("\U00002699 Системные команды", callback_data="admin_system")],
+                [InlineKeyboardButton("\U0000274C Закрыть", callback_data="admin_close")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -719,13 +719,13 @@ class DiscordTelegramBot:
             muted_count = len([uid for uid, end_time in self.muted_users.items() if end_time > time.time()])
             
             admin_text = f"""
-<b>🛠️ Админ панель - Belomor Bot</b>
+<b>\U0001F6E0 Админ панель - Belomor Bot</b>
 
 <b>� Быстрая статистика:</b>
-👥 Подписчиков: <i>{len(self.subscribers)}</i>
+\U0001F465 Подписчиков: <i>{len(self.subscribers)}</i>
 � Замьючено: <i>{muted_count}</i>
-📨 Сообщений: <i>{self.message_count}</i>
-⏱️ Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
+\U0001F4E8 Сообщений: <i>{self.message_count}</i>
+\U000023F1 Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
 
 Выберите действие ниже:
             """
@@ -782,7 +782,7 @@ class DiscordTelegramBot:
             
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"✅ Сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
+                text=f"\U00002705 Сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
             )
             
             logger.info(f"Администратор {user_id} отправил рассылку: {message_text}")
@@ -832,7 +832,7 @@ class DiscordTelegramBot:
             
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"✅ HTML сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
+                text=f"\U00002705 HTML сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
             )
             
             logger.info(f"Администратор {user_id} отправил HTML рассылку: {message_text}")
@@ -869,7 +869,7 @@ class DiscordTelegramBot:
                 await update.message.delete()
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text="❌ Неверный формат. Укажите число часов."
+                    text="\U0000274C Неверный формат. Укажите число часов."
                 )
                 return
             
@@ -897,7 +897,7 @@ class DiscordTelegramBot:
             
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"✅ Удалено {deleted_count} сообщений старше {hours} часов"
+                text=f"\U00002705 Удалено {deleted_count} сообщений старше {hours} часов"
             )
             
             logger.info(f"Администратор {user_id} удалил {deleted_count} сообщений старше {hours} часов")
@@ -935,7 +935,7 @@ class DiscordTelegramBot:
                 await update.message.delete()
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text="❌ Неверный формат часов. Укажите число."
+                    text="\U0000274C Неверный формат часов. Укажите число."
                 )
                 return
             
@@ -949,7 +949,7 @@ class DiscordTelegramBot:
             
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"✅ Пользователь {target_user_id} замьючен до {end_time_str}"
+                text=f"\U00002705 Пользователь {target_user_id} замьючен до {end_time_str}"
             )
             
             logger.info(f"Администратор {user_id} замьючил пользователя {target_user_id} на {hours} часов")
@@ -988,13 +988,13 @@ class DiscordTelegramBot:
                 del self.muted_users[int(target_user_id)]
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text=f"✅ Пользователь {target_user_id} размьючен"
+                    text=f"\U00002705 Пользователь {target_user_id} размьючен"
                 )
                 logger.info(f"Администратор {user_id} размьючил пользователя {target_user_id}")
             else:
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text=f"❌ Пользователь {target_user_id} не замьючен"
+                    text=f"\U0000274C Пользователь {target_user_id} не замьючен"
                 )
             
         except Exception as e:
@@ -1027,7 +1027,7 @@ class DiscordTelegramBot:
             
             await context.bot.send_message(
                 chat_id=user_id,
-                text=f"✅ Очищено {cleared_count} из {len(self.subscribers)} чатов"
+                text=f"\U00002705 Очищено {cleared_count} из {len(self.subscribers)} чатов"
             )
             
             logger.info(f"Администратор {user_id} очистил все чаты")
@@ -1081,8 +1081,8 @@ class DiscordTelegramBot:
                 self.save_subscribers()
                 
                 # Редактируем сообщение
-                keyboard = [[InlineKeyboardButton("🔕 Отписаться", callback_data="unsubscribe")]]
-                text = f"🔔 Вы успешно подписались на уведомления от Discord-сервера '{self.DISCORD_SERVER_NAME}'"
+                keyboard = [[InlineKeyboardButton("\U0001F515 Отписаться", callback_data="unsubscribe")]]
+                text = f"\U0001F514 Вы успешно подписались на уведомления от Discord-сервера '{self.DISCORD_SERVER_NAME}'"
                 
                 await query.edit_message_text(
                     text=text,
@@ -1104,8 +1104,8 @@ class DiscordTelegramBot:
                     del self.subscriber_activity[user_id]
                 
                 # Редактируем сообщение
-                keyboard = [[InlineKeyboardButton("🔔 Подписаться", callback_data="subscribe")]]
-                text = f"🔕 Вы успешно отписались от уведомлений от Discord-сервера '{self.DISCORD_SERVER_NAME}'"
+                keyboard = [[InlineKeyboardButton("\U0001F514 Подписаться", callback_data="subscribe")]]
+                text = f"\U0001F515 Вы успешно отписались от уведомлений от Discord-сервера '{self.DISCORD_SERVER_NAME}'"
                 
                 await query.edit_message_text(
                     text=text,
@@ -1122,29 +1122,29 @@ class DiscordTelegramBot:
                 muted_count = len([uid for uid, end_time in self.muted_users.items() if end_time > time.time()])
                 
                 stats_text = f"""
-<b>📊 Детальная статистика бота</b>
+<b>\U0001F4CA Детальная статистика бота</b>
 
-<b>👥 Пользователи:</b>
+<b>\U0001F465 Пользователи:</b>
 • Подписчиков: <i>{len(self.subscribers)}</i>
 • Замьючено: <i>{muted_count}</i>
 
-<b>📨 Сообщения:</b>
+<b>\U0001F4E8 Сообщения:</b>
 • Переслано: <i>{self.message_count}</i>
 • Интервал проверки: <i>{self.polling_interval} сек</i>
 
-<b>⏱️ Время работы:</b>
+<b>\U000023F1 Время работы:</b>
 • Запущен: <i>{datetime.fromtimestamp(self.start_time).strftime('%d.%m.%Y %H:%M')}</i>
 • Аптайм: <i>{uptime_hours}ч {uptime_minutes}м</i>
 
-<b>🔧 Настройки:</b>
+<b>\U0001F527 Настройки:</b>
 • Батч размер: <i>{self.batch_size}</i>
 • Макс. отправок: <i>{self.max_concurrent_sends}</i>
 • Автоудаление: <i>{'Включено' if self.auto_delete_enabled else 'Выключено'}</i>
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("🔄 Обновить", callback_data="admin_stats")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U0001F504 Обновить", callback_data="admin_stats")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1156,7 +1156,7 @@ class DiscordTelegramBot:
             elif query.data == "admin_users":
                 # Админ: управление пользователями
                 users_text = f"""
-<b>👥 Управление пользователями</b>
+<b>\U0001F465 Управление пользователями</b>
 
 Всего подписчиков: <i>{len(self.subscribers)}</i>
 Замьючено: <i>{len([uid for uid, end_time in self.muted_users.items() if end_time > time.time()])}</i>
@@ -1165,12 +1165,12 @@ class DiscordTelegramBot:
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("📋 Подписчики с уведомлениями", callback_data="admin_subscribers_enabled")],
-                    [InlineKeyboardButton("🔇 Подписчики без уведомлений", callback_data="admin_subscribers_disabled")],
+                    [InlineKeyboardButton("\U0001F4CB Подписчики с уведомлениями", callback_data="admin_subscribers_enabled")],
+                    [InlineKeyboardButton("\U0001F507 Подписчики без уведомлений", callback_data="admin_subscribers_disabled")],
                     [InlineKeyboardButton("� Активность подписчиков", callback_data="admin_activity")],
-                    [InlineKeyboardButton("🧹 Очистить неактивных (30дней)", callback_data="admin_cleanup_inactive")],
+                    [InlineKeyboardButton("\U0001F9F9 Очистить неактивных (30дней)", callback_data="admin_cleanup_inactive")],
                     [InlineKeyboardButton("� Размьютить всех", callback_data="admin_unmute_all")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1181,7 +1181,7 @@ class DiscordTelegramBot:
             
             elif query.data == "admin_activity":
                 # Админ: статистика активности подписчиков
-                activity_text = "<b>📊 Активность подписчиков</b>\n\n"
+                activity_text = "<b>\U0001F4CA Активность подписчиков</b>\n\n"
                 
                 if self.subscriber_activity:
                     # Сортируем по последней активности
@@ -1195,7 +1195,7 @@ class DiscordTelegramBot:
                         subscribed = datetime.fromtimestamp(data['subscribed_at']).strftime('%d.%m.%Y')
                         last_active = datetime.fromtimestamp(data['last_activity']).strftime('%d.%m.%Y %H:%M')
                         messages = data['messages_received']
-                        activity_text += f"{i}. <code>{user_id}</code>\n   📅 Подписан: {subscribed}\n   📨 Сообщений: {messages}\n   ⏰ Активность: {last_active}\n\n"
+                        activity_text += f"{i}. <code>{user_id}</code>\n   \U0001F4C5 Подписан: {subscribed}\n   \U0001F4E8 Сообщений: {messages}\n   \U000023F0 Активность: {last_active}\n\n"
                     
                     if len(sorted_activity) > 20:
                         activity_text += f"<i>...и еще {len(sorted_activity) - 20} пользователей</i>"
@@ -1203,7 +1203,7 @@ class DiscordTelegramBot:
                     activity_text += "Нет данных об активности"
                 
                 keyboard = [
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_users")]
                 ]
                 
                 await query.edit_message_text(
@@ -1229,12 +1229,12 @@ class DiscordTelegramBot:
                             del self.subscriber_activity[uid]
                     
                     self.save_subscribers()
-                    result_text = f"✅ Удалено {len(inactive_users)} неактивных подписчиков"
+                    result_text = f"\U00002705 Удалено {len(inactive_users)} неактивных подписчиков"
                 else:
-                    result_text = "❌ Нет неактивных подписчиков"
+                    result_text = "\U0000274C Нет неактивных подписчиков"
                 
                 keyboard = [
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_users")]
                 ]
                 
                 await query.edit_message_text(
@@ -1250,18 +1250,18 @@ class DiscordTelegramBot:
                 enabled_users = [uid for uid in self.subscribers if uid not in self.muted_users or self.muted_users[uid] < current_time]
                 
                 if enabled_users:
-                    list_text = f"<b>🔔 Люди, у которых включены уведомления</b>\n\n"
+                    list_text = f"<b>\U0001F514 Люди, у которых включены уведомления</b>\n\n"
                     for i, user_id in enumerate(enabled_users[:50], 1):
                         list_text += f"{i}. <i>ID: {user_id}</i>\n"
                     
                     if len(enabled_users) > 50:
                         list_text += f"\n<i>...и еще {len(enabled_users) - 50} пользователей</i>"
                 else:
-                    list_text = "<b>🔔 Люди, у которых включены уведомления</b>\n\nНет пользователей с включенными уведомлениями"
+                    list_text = "<b>\U0001F514 Люди, у которых включены уведомления</b>\n\nНет пользователей с включенными уведомлениями"
                 
                 keyboard = [
-                    [InlineKeyboardButton("🔇 Выключенные уведомления", callback_data="admin_subscribers_disabled")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                    [InlineKeyboardButton("\U0001F507 Выключенные уведомления", callback_data="admin_subscribers_disabled")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_users")]
                 ]
                 
                 await query.edit_message_text(
@@ -1276,7 +1276,7 @@ class DiscordTelegramBot:
                 disabled_users = [uid for uid in self.subscribers if uid in self.muted_users and self.muted_users[uid] > current_time]
                 
                 if disabled_users:
-                    list_text = f"<b>🔇 Люди, у которых выключены уведомления</b>\n\n"
+                    list_text = f"<b>\U0001F507 Люди, у которых выключены уведомления</b>\n\n"
                     for i, user_id in enumerate(disabled_users[:50], 1):
                         mute_end = self.muted_users[user_id]
                         end_time_str = datetime.fromtimestamp(mute_end).strftime('%d.%m.%Y %H:%M')
@@ -1285,11 +1285,11 @@ class DiscordTelegramBot:
                     if len(disabled_users) > 50:
                         list_text += f"\n<i>...и еще {len(disabled_users) - 50} пользователей</i>"
                 else:
-                    list_text = "<b>🔇 Люди, у которых выключены уведомления</b>\n\nНет пользователей с выключенными уведомлениями"
+                    list_text = "<b>\U0001F507 Люди, у которых выключены уведомления</b>\n\nНет пользователей с выключенными уведомлениями"
                 
                 keyboard = [
-                    [InlineKeyboardButton("🔔 Включенные уведомления", callback_data="admin_subscribers_enabled")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                    [InlineKeyboardButton("\U0001F514 Включенные уведомления", callback_data="admin_subscribers_enabled")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_users")]
                 ]
                 
                 await query.edit_message_text(
@@ -1304,13 +1304,13 @@ class DiscordTelegramBot:
                 muted_count = len([uid for uid, end_time in self.muted_users.items() if end_time > current_time])
                 
                 if muted_count == 0:
-                    result_text = "❌ Нет замьюченных пользователей"
+                    result_text = "\U0000274C Нет замьюченных пользователей"
                 else:
                     self.muted_users.clear()
-                    result_text = f"✅ Размьючено {muted_count} пользователей"
+                    result_text = f"\U00002705 Размьючено {muted_count} пользователей"
                 
                 keyboard = [
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_users")]
                 ]
                 
                 await query.edit_message_text(
@@ -1324,15 +1324,15 @@ class DiscordTelegramBot:
                 # Админ: список подписчиков
                 subscribers_list = list(self.subscribers)
                 if len(subscribers_list) > 50:
-                    list_text = f"<b>📋 Список подписчиков (первые 50 из {len(subscribers_list)})</b>\n\n"
+                    list_text = f"<b>\U0001F4CB Список подписчиков (первые 50 из {len(subscribers_list)})</b>\n\n"
                 else:
-                    list_text = f"<b>📋 Список подписчиков ({len(subscribers_list)})</b>\n\n"
+                    list_text = f"<b>\U0001F4CB Список подписчиков ({len(subscribers_list)})</b>\n\n"
                 
                 for i, sub_id in enumerate(subscribers_list[:50], 1):
                     list_text += f"{i}. <code>{sub_id}</code>\n"
                 
                 keyboard = [
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_users")]
                 ]
                 
                 await query.edit_message_text(
@@ -1347,15 +1347,15 @@ class DiscordTelegramBot:
                 muted_list = [(uid, end_time) for uid, end_time in self.muted_users.items() if end_time > current_time]
                 
                 if muted_list:
-                    list_text = f"<b>🔇 Список замьюченных ({len(muted_list)})</b>\n\n"
+                    list_text = f"<b>\U0001F507 Список замьюченных ({len(muted_list)})</b>\n\n"
                     for i, (uid, end_time) in enumerate(muted_list, 1):
                         end_str = datetime.fromtimestamp(end_time).strftime('%d.%m.%Y %H:%M')
                         list_text += f"{i}. <code>{uid}</code> - до {end_str}\n"
                 else:
-                    list_text = "<b>🔇 Список замьюченных</b>\n\nНет замьюченных пользователей"
+                    list_text = "<b>\U0001F507 Список замьюченных</b>\n\nНет замьюченных пользователей"
                 
                 keyboard = [
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_users")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_users")]
                 ]
                 
                 await query.edit_message_text(
@@ -1367,7 +1367,7 @@ class DiscordTelegramBot:
             elif query.data == "admin_broadcast_menu":
                 # Админ: меню рассылки
                 broadcast_text = """
-<b>📢 Рассылка сообщений</b>
+<b>\U0001F4E2 Рассылка сообщений</b>
 
 Выберите тип рассылки:
 • <b>Текстовая</b> - обычное текстовое сообщение
@@ -1375,9 +1375,9 @@ class DiscordTelegramBot:
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("📝 Текстовая", callback_data="admin_broadcast_type_text")],
-                    [InlineKeyboardButton("🎨 HTML", callback_data="admin_broadcast_type_html")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U0001F4DD Текстовая", callback_data="admin_broadcast_type_text")],
+                    [InlineKeyboardButton("\U0001F3A8 HTML", callback_data="admin_broadcast_type_html")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1389,8 +1389,8 @@ class DiscordTelegramBot:
             elif query.data == "admin_broadcast_type_text":
                 # Админ: ввод текстовой рассылки
                 await query.edit_message_text(
-                    text="📝 Введите текст для рассылки:\n\nОтправьте сообщение как обычный текст, и оно будет разослано всем подписчикам.",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Отмена", callback_data="admin_back")]])
+                    text="\U0001F4DD Введите текст для рассылки:\n\nОтправьте сообщение как обычный текст, и оно будет разослано всем подписчикам.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U00002B05 Отмена", callback_data="admin_back")]])
                 )
                 # Сохраняем состояние для следующего сообщения
                 context.user_data['waiting_for_broadcast'] = 'text'
@@ -1398,8 +1398,8 @@ class DiscordTelegramBot:
             elif query.data == "admin_broadcast_type_html":
                 # Админ: ввод HTML рассылки
                 await query.edit_message_text(
-                    text="🎨 Введите HTML текст для рассылки:\n\nОтправьте сообщение с HTML тегами, и оно будет разослано всем подписчикам.\nПример: <b>Жирный текст</b> и <i>курсив</i>",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Отмена", callback_data="admin_back")]])
+                    text="\U0001F3A8 Введите HTML текст для рассылки:\n\nОтправьте сообщение с HTML тегами, и оно будет разослано всем подписчикам.\nПример: <b>Жирный текст</b> и <i>курсив</i>",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U00002B05 Отмена", callback_data="admin_back")]])
                 )
                 # Сохраняем состояние для следующего сообщения
                 context.user_data['waiting_for_broadcast'] = 'html'
@@ -1407,17 +1407,17 @@ class DiscordTelegramBot:
             elif query.data == "admin_clear_menu":
                 # Админ: меню очистки
                 clear_text = """
-<b>🗑️ Очистка чатов</b>
+<b>\U0001F5D1 Очистка чатов</b>
 
 Выберите действие:
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("🗑️ Очистить все чаты", callback_data="admin_clearall_confirm")],
-                    [InlineKeyboardButton("🧹 Удалить старые (24ч)", callback_data="admin_clear_old_24")],
-                    [InlineKeyboardButton("🧹 Удалить старые (12ч)", callback_data="admin_clear_old_12")],
-                    [InlineKeyboardButton("🧹 Удалить старые (6ч)", callback_data="admin_clear_old_6")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U0001F5D1 Очистить все чаты", callback_data="admin_clearall_confirm")],
+                    [InlineKeyboardButton("\U0001F9F9 Удалить старые (24ч)", callback_data="admin_clear_old_24")],
+                    [InlineKeyboardButton("\U0001F9F9 Удалить старые (12ч)", callback_data="admin_clear_old_12")],
+                    [InlineKeyboardButton("\U0001F9F9 Удалить старые (6ч)", callback_data="admin_clear_old_6")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1448,10 +1448,10 @@ class DiscordTelegramBot:
                         if (chat_id, message_id) in self.sent_messages:
                             del self.sent_messages[(chat_id, message_id)]
                 
-                result_text = f"✅ Удалено {deleted_count} сообщений старше {hours} часов"
+                result_text = f"\U00002705 Удалено {deleted_count} сообщений старше {hours} часов"
                 
                 keyboard = [
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_clear_menu")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_clear_menu")]
                 ]
                 
                 await query.edit_message_text(
@@ -1464,14 +1464,14 @@ class DiscordTelegramBot:
             elif query.data == "admin_clearall_confirm":
                 # Админ: подтверждение очистки
                 confirm_text = """
-⚠️ <b>Вы уверены, что хотите очистить ВСЕ чаты?</b>
+\U000026A0 <b>Вы уверены, что хотите очистить ВСЕ чаты?</b>
 
 Это действие удалит все сообщения до закрепленных у всех подписчиков!
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("✅ Да, очистить", callback_data="admin_clearall_do")],
-                    [InlineKeyboardButton("❌ Отмена", callback_data="admin_clear_menu")]
+                    [InlineKeyboardButton("\U00002705 Да, очистить", callback_data="admin_clearall_do")],
+                    [InlineKeyboardButton("\U0000274C Отмена", callback_data="admin_clear_menu")]
                 ]
                 
                 await query.edit_message_text(
@@ -1490,10 +1490,10 @@ class DiscordTelegramBot:
                     except Exception as e:
                         logger.error(f"Ошибка очистки чата пользователя {subscriber_id}: {e}")
                 
-                result_text = f"✅ Очищено {cleared_count} из {len(self.subscribers)} чатов"
+                result_text = f"\U00002705 Очищено {cleared_count} из {len(self.subscribers)} чатов"
                 
                 keyboard = [
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1506,19 +1506,19 @@ class DiscordTelegramBot:
             elif query.data == "admin_system":
                 # Админ: системные команды
                 system_text = """
-<b>⚙️ Системные команды</b>
+<b>\U00002699 Системные команды</b>
 
 Доступные команды:
 • <b>/restart</b> - перезапустить бота
 • <b>/status</b> - показать статус бота
 • <b>/stats</b> - детальная статистика
 
-⚠️ Будьте осторожны с системными командами!
+\U000026A0 Будьте осторожны с системными командами!
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("🔄 Перезапустить бота", callback_data="admin_restart_confirm")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U0001F504 Перезапустить бота", callback_data="admin_restart_confirm")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1530,14 +1530,14 @@ class DiscordTelegramBot:
             elif query.data == "admin_restart_confirm":
                 # Админ: подтверждение перезапуска
                 confirm_text = """
-⚠️ <b>Вы уверены, что хотите перезапустить бота?</b>
+\U000026A0 <b>Вы уверены, что хотите перезапустить бота?</b>
 
 Бот будет перезапущен через несколько секунд.
                 """
                 
                 keyboard = [
-                    [InlineKeyboardButton("✅ Да, перезапустить", callback_data="admin_restart_do")],
-                    [InlineKeyboardButton("❌ Отмена", callback_data="admin_system")]
+                    [InlineKeyboardButton("\U00002705 Да, перезапустить", callback_data="admin_restart_do")],
+                    [InlineKeyboardButton("\U0000274C Отмена", callback_data="admin_system")]
                 ]
                 
                 await query.edit_message_text(
@@ -1568,34 +1568,34 @@ class DiscordTelegramBot:
             elif query.data == "admin_close":
                 # Админ: закрыть панель
                 await query.edit_message_text(
-                    text="❌ Админ панель закрыта",
+                    text="\U0000274C Админ панель закрыта",
                     reply_markup=None
                 )
             
             elif query.data == "admin_broadcast":
                 # Админ: рассылка (старый метод для совместимости)
                 await query.edit_message_text(
-                    text="📢 Введите сообщение для рассылки:\nИспользуйте: /broadcast <текст>",
+                    text="\U0001F4E2 Введите сообщение для рассылки:\nИспользуйте: /broadcast <текст>",
                     reply_markup=None
                 )
             
             elif query.data == "admin_clearall":
                 # Админ: очистить все чаты (старый метод для совместимости)
                 await query.edit_message_text(
-                    text="🗑️ Очистка всех чатов...\nИспользуйте: /clearall",
+                    text="\U0001F5D1 Очистка всех чатов...\nИспользуйте: /clearall",
                     reply_markup=None
                 )
             
             elif query.data == "admin_restart":
                 # Админ: перезапуск бота (старый метод для совместимости)
                 await query.edit_message_text(
-                    text="🔄 Перезапуск бота...\nИспользуйте: /restart",
+                    text="\U0001F504 Перезапуск бота...\nИспользуйте: /restart",
                     reply_markup=None
                 )
             
             elif query.data == "admin_templates":
                 # Админ: управление шаблонами рассылки
-                templates_text = "<b>📝 Шаблоны рассылки</b>\n\n"
+                templates_text = "<b>\U0001F4DD Шаблоны рассылки</b>\n\n"
                 
                 if self.broadcast_templates:
                     for name, text in self.broadcast_templates.items():
@@ -1605,9 +1605,9 @@ class DiscordTelegramBot:
                     templates_text += "Нет сохраненных шаблонов"
                 
                 keyboard = [
-                    [InlineKeyboardButton("➕ Добавить шаблон", callback_data="admin_template_add")],
-                    [InlineKeyboardButton("🗑️ Удалить шаблон", callback_data="admin_template_delete")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U00002795 Добавить шаблон", callback_data="admin_template_add")],
+                    [InlineKeyboardButton("\U0001F5D1 Удалить шаблон", callback_data="admin_template_delete")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1619,19 +1619,19 @@ class DiscordTelegramBot:
             elif query.data == "admin_template_add":
                 # Админ: добавление шаблона
                 await query.edit_message_text(
-                    text="📝 Введите название шаблона и текст через |:\n\nПример: Название|Текст шаблона",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Отмена", callback_data="admin_templates")]])
+                    text="\U0001F4DD Введите название шаблона и текст через |:\n\nПример: Название|Текст шаблона",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U00002B05 Отмена", callback_data="admin_templates")]])
                 )
                 context.user_data['waiting_for_template'] = True
             
             elif query.data == "admin_template_delete":
                 # Админ: удаление шаблона
                 if self.broadcast_templates:
-                    delete_text = "<b>🗑️ Выберите шаблон для удаления:</b>\n\n"
+                    delete_text = "<b>\U0001F5D1 Выберите шаблон для удаления:</b>\n\n"
                     keyboard = []
                     for name in self.broadcast_templates.keys():
-                        keyboard.append([InlineKeyboardButton(f"🗑️ {name}", callback_data=f"admin_template_del_{name}")])
-                    keyboard.append([InlineKeyboardButton("⬅️ Назад", callback_data="admin_templates")])
+                        keyboard.append([InlineKeyboardButton(f"\U0001F5D1 {name}", callback_data=f"admin_template_del_{name}")])
+                    keyboard.append([InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_templates")])
                     
                     await query.edit_message_text(
                         text=delete_text,
@@ -1640,8 +1640,8 @@ class DiscordTelegramBot:
                     )
                 else:
                     await query.edit_message_text(
-                        text="❌ Нет шаблонов для удаления",
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data="admin_templates")]])
+                        text="\U0000274C Нет шаблонов для удаления",
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_templates")]])
                     )
             
             elif query.data.startswith("admin_template_del_"):
@@ -1649,18 +1649,18 @@ class DiscordTelegramBot:
                 template_name = query.data.replace("admin_template_del_", "")
                 if template_name in self.broadcast_templates:
                     del self.broadcast_templates[template_name]
-                    result_text = f"✅ Шаблон '{template_name}' удален"
+                    result_text = f"\U00002705 Шаблон '{template_name}' удален"
                 else:
-                    result_text = "❌ Шаблон не найден"
+                    result_text = "\U0000274C Шаблон не найден"
                 
                 await query.edit_message_text(
                     text=result_text,
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data="admin_templates")]])
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_templates")]])
                 )
             
             elif query.data == "admin_log":
                 # Админ: лог действий
-                log_text = "<b>📋 Лог действий админа</b>\n\n"
+                log_text = "<b>\U0001F4CB Лог действий админа</b>\n\n"
                 
                 if self.admin_log:
                     for log_entry in self.admin_log[-20:]:  # Последние 20 записей
@@ -1670,8 +1670,8 @@ class DiscordTelegramBot:
                     log_text += "Нет записей в логе"
                 
                 keyboard = [
-                    [InlineKeyboardButton("🗑️ Очистить лог", callback_data="admin_log_clear")],
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]
+                    [InlineKeyboardButton("\U0001F5D1 Очистить лог", callback_data="admin_log_clear")],
+                    [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
                 ]
                 
                 await query.edit_message_text(
@@ -1684,8 +1684,8 @@ class DiscordTelegramBot:
                 # Админ: очистка лога
                 self.admin_log.clear()
                 await query.edit_message_text(
-                    text="✅ Лог очищен",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Назад", callback_data="admin_back")]])
+                    text="\U00002705 Лог очищен",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]])
                 )
                 
         except Exception as e:
@@ -1718,12 +1718,12 @@ class DiscordTelegramBot:
                     
                     await context.bot.send_message(
                         chat_id=user_id,
-                        text=f"✅ Шаблон '{name.strip()}' добавлен"
+                        text=f"\U00002705 Шаблон '{name.strip()}' добавлен"
                     )
                 else:
                     await context.bot.send_message(
                         chat_id=user_id,
-                        text="❌ Неверный формат. Используйте: Название|Текст"
+                        text="\U0000274C Неверный формат. Используйте: Название|Текст"
                     )
                 
                 del context.user_data['waiting_for_template']
@@ -1765,7 +1765,7 @@ class DiscordTelegramBot:
                 # Отправляем результат
                 await context.bot.send_message(
                     chat_id=user_id,
-                    text=f"✅ Сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
+                    text=f"\U00002705 Сообщение отправлено {success_count} из {len(self.subscribers)} подписчикам"
                 )
                 
                 logger.info(f"Администратор {user_id} отправил {broadcast_type} рассылку через панель")
