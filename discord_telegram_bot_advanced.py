@@ -191,12 +191,20 @@ class DiscordTelegramBot:
             # Пытаемся получить ник с сервера (server-specific nickname)
             member_data = message.get('member', {})
             server_nick = member_data.get('nick')
+            
+            # Логирование для отладки
+            logger.info(f"DISCORD_SERVER_ID: {self.DISCORD_SERVER_ID}")
+            logger.info(f"member_data: {member_data}")
+            logger.info(f"server_nick: {server_nick}")
+            
             # Для сервера 1506228881902801027 всегда используем серверный никнейм
             if self.DISCORD_SERVER_ID == '1506228881902801027' and server_nick:
                 author_display_name = server_nick
+                logger.info(f"Используем серверный никнейм: {server_nick}")
             else:
                 # Приоритет: серверный ник > global_name > username
                 author_display_name = server_nick if server_nick else author.get('global_name', author_name)
+                logger.info(f"Используем: {author_display_name} (server_nick={server_nick}, global_name={author.get('global_name')}, username={author_name})")
             
             # Получаем контент сообщения и убираем пинги ролей
             content = message.get('content', '')
