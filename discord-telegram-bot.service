@@ -1,0 +1,14 @@
+[Unit]
+Description=Discord-Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=your_username
+WorkingDirectory=/path/to/your/project
+ExecStart=/path/to/your/project/start_bot.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,38 @@
+{
+  "discord": {
+    "server_id": "1506228881902801027",
+    "channel_id": "1506229201861218415",
+    "server_name": "Belomor"
+  },
+  "telegram": {
+    "admin_id": "1805647541",
+    "bot_username": "belomor_bridge_bot"
+  },
+  "openai_compatible": {
+    "enabled": false,
+    "api_base": null,
+    "api_key": null,
+    "model": "gpt-3.5-turbo",
+    "max_tokens": 1000,
+    "temperature": 0.7
+  },
+  "monitoring": {
+    "polling_interval": 2,
+    "message_limit": 10,
+    "enable_logging": true,
+    "log_level": "INFO"
+  },
+  "performance": {
+    "batch_size": 30,
+    "batch_delay": 0.1,
+    "max_concurrent_sends": 50
+  },
+  "features": {
+    "mute_enabled": true,
+    "default_mute_duration": 3600,
+    "subscriptions_enabled": true,
+    "attachments_enabled": true,
+    "auto_delete_enabled": true,
+    "auto_delete_hours": 6
+  }
+}
