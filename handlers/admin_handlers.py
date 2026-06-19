@@ -110,9 +110,9 @@ class AdminHandlers:
             admin_text = f"""
 <b>\U0001F6E0 Админ панель - Belomor Bot</b>
 
-<b> Быстрая статистика:</b>
+<b>Быстрая статистика:</b>
 \U0001F465 Подписчиков: <i>{len(self.bot.subscribers)}</i>
-\U0001F507 Замьючено: <i>{muted_count}</i>
+\U0001F507Замьючено: <i>{muted_count}</i>
 \U0001F4E8 Сообщений: <i>{self.bot.message_count}</i>
 \U000023F1 Время работы: <i>{uptime_hours}ч {uptime_minutes}м</i>
 

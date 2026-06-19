@@ -1124,7 +1124,7 @@ class DiscordTelegramBot:
                 stats_text = f"""
 <b>\U0001F4CA Детальная статистика бота</b>
 
-<b>\U0001F465 Пользователи:</b>
+<b>\U0001F465Пользователи:</b>
 • Подписчиков: <i>{len(self.subscribers)}</i>
 •Замьючено: <i>{muted_count}</i>
 

@@ -198,7 +198,7 @@ class CallbackHandlers:
         stats_text = f"""
 <b>\U0001F4CA Детальная статистика бота</b>
 
-<b>\U0001F465 Пользователи:</b>
+<b>\U0001F465Пользователи:</b>
 • Подписчиков: <i>{len(self.bot.subscribers)}</i>
 •Замьючено: <i>{muted_count}</i>
 
@@ -240,9 +240,9 @@ class CallbackHandlers:
         keyboard = [
             [InlineKeyboardButton("\U0001F4CB Подписчики с уведомлениями", callback_data="admin_subscribers_enabled")],
             [InlineKeyboardButton("\U0001F507 Подписчики без уведомлений", callback_data="admin_subscribers_disabled")],
-            [InlineKeyboardButton(" Активность подписчиков", callback_data="admin_activity")],
+            [InlineKeyboardButton("Активность подписчиков", callback_data="admin_activity")],
             [InlineKeyboardButton("\U0001F9F9 Очистить неактивных (30дней)", callback_data="admin_cleanup_inactive")],
-            [InlineKeyboardButton(" Размьютить всех", callback_data="admin_unmute_all")],
+            [InlineKeyboardButton("Размьютить всех", callback_data="admin_unmute_all")],
             [InlineKeyboardButton("\U00002B05 Назад", callback_data="admin_back")]
         ]
         
