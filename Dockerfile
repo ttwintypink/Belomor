@@ -23,4 +23,4 @@ ENV DATA_DIR=/app/data
 ENV PYTHONPATH=/app
 
 # Запускаем правильный файл бота
-CMD ["python", "main.py"]
+CMD ["python", "discord_telegram_bot_advanced.py"]
