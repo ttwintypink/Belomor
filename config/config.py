@@ -59,7 +59,8 @@ class Config:
     def load_config(self):
         """Загружает конфигурацию из config.json."""
         try:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
+            # Ищем config.json в корневой директории проекта
+            script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             config_path = os.path.join(script_dir, 'config.json')
             
             with open(config_path, 'r', encoding='utf-8') as f:
