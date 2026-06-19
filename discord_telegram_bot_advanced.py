@@ -53,7 +53,7 @@ class DiscordTelegramBot:
         
         # Telegram настройки из config.json
         self.TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-        self.ADMIN_ID = self.config['telegram']['admin_id']
+        self.ADMIN_ID = int(self.config['telegram']['admin_id'])
         
         # Настройки мониторинга из config.json
         self.polling_interval = self.config['monitoring']['polling_interval']
