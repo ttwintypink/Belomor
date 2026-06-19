@@ -22,4 +22,4 @@ RUN mkdir -p /app/data && chmod 777 /app/data
 ENV DATA_DIR=/app/data
 
 # Запускаем правильный файл бота
-CMD ["python", "discord_telegram_bot_advanced.py"]
+CMD ["python", "main.py"]
