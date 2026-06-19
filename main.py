@@ -8,12 +8,12 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 from dotenv import load_dotenv
 
 # Импорты модулей
-from config import Config
-from discord_api import DiscordAPI
-from telegram_handlers import TelegramHandlers
-from admin_handlers import AdminHandlers
-from callback_handlers import CallbackHandlers
-from utils import (
+from config.config import Config
+from api.discord_api import DiscordAPI
+from handlers.telegram_handlers import TelegramHandlers
+from handlers.admin_handlers import AdminHandlers
+from handlers.callback_handlers import CallbackHandlers
+from utils.utils import (
     get_current_time,
     load_subscribers,
     save_subscribers,
