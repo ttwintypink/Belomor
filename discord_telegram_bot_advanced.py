@@ -19,6 +19,20 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class BufferHandler(logging.Handler):
+    """Кастомный логгер для записи в буфер"""
+    def __init__(self, buffer):
+        super().__init__()
+        self.buffer = buffer
+    
+    def emit(self, record):
+        log_entry = self.format(record)
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.buffer.append(f"[{timestamp}] {log_entry}")
+        # Храним только последние 1000 строк
+        if len(self.buffer) > 1000:
+            self.buffer.pop(0)
+
 class DiscordTelegramBot:
     def load_config(self):
         """Загружает конфигурацию из config.json"""
@@ -44,6 +58,14 @@ class DiscordTelegramBot:
     def __init__(self):
         # Загрузка конфигурации
         self.config = self.load_config()
+        
+        # Хранение логов в памяти
+        self.logs_buffer = []
+        
+        # Добавляем кастомный логгер для записи в буфер
+        buffer_handler = BufferHandler(self.logs_buffer)
+        buffer_handler.setLevel(logging.INFO)
+        logger.addHandler(buffer_handler)
         
         # Discord настройки из config.json
         self.DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
@@ -1075,6 +1097,44 @@ class DiscordTelegramBot:
         except Exception as e:
             logger.error(f"Ошибка при обработке /restart: {e}")
     
+    async def logs_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработчик команды /logs - вывод последних логов"""
+        user_id = update.effective_user.id
+        
+        # Проверяем, что это администратор
+        if user_id != self.ADMIN_ID:
+            await update.message.delete()
+            await context.bot.send_message(
+                chat_id=user_id,
+                text="🚫 У вас нет доступа к этой команде!"
+            )
+            return
+        
+        try:
+            await update.message.delete()
+            
+            # Получаем последние логи из памяти
+            if hasattr(self, 'logs_buffer'):
+                logs_text = "\n".join(self.logs_buffer[-50:])  # Последние 50 строк
+            else:
+                logs_text = "Логи не найдены"
+            
+            # Разбиваем на части, если сообщение слишком длинное
+            max_length = 4000
+            logs_parts = [logs_text[i:i+max_length] for i in range(0, len(logs_text), max_length)]
+            
+            for i, part in enumerate(logs_parts, 1):
+                await context.bot.send_message(
+                    chat_id=user_id,
+                    text=f"<b>📋 Логи (часть {i}/{len(logs_parts)}):</b>\n\n<pre>{part}</pre>",
+                    parse_mode='HTML'
+                )
+            
+            logger.info(f"Администратор {user_id} запросил логи")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обработке /logs: {e}")
+    
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Обработчик нажатий на инлайн кнопки"""
         query = update.callback_query
@@ -1900,6 +1960,7 @@ def main():
     application.add_handler(CommandHandler("mute_user", bot.admin_mute_user_command))
     application.add_handler(CommandHandler("unmute_user", bot.admin_unmute_user_command))
     application.add_handler(CommandHandler("restart", bot.admin_restart_command))
+    application.add_handler(CommandHandler("logs", bot.logs_command))
     application.add_handler(CallbackQueryHandler(bot.button_callback))
     
     # Добавляем обработчик для всех сообщений кроме команд
