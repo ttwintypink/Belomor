@@ -213,13 +213,13 @@ class DiscordTelegramBot:
             
             # Формируем красивое сообщение для Telegram с HTML форматированием
             telegram_message = f"""
-<b>\U0001F4E8 Новое сообщение из Discord</b>
+<b> 📨 Новое сообщение из Discord </b>
 
-<b>\U0001F464 Автор:</b> <i>{author_display_name} (@{author_name})</i>
-<b>\U000023F0 Время отправки сообщения Discord:</b> <i>{msk_time} (МСК)</i>
+<b> 👤 Автор: </b> <i>{author_display_name} (@{author_name})</i>
+<b> ⏰ Время отправки сообщения Discord: </b> <i>{msk_time}</i>
 
-<b>\U0001F4AC Сообщение:</b>
-{content}
+<b> 💬 Сообщение: </b> 
+<i>{content}</i>
             """
             
             # Добавляем информацию о вложениях (если включено в config)
